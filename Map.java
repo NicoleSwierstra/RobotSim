@@ -30,22 +30,39 @@ class MapPoint {
     }
 }
 
+class treeNode {
+    public ArrayList<Integer> mappoints;
+
+    public treeNode() {
+        mappoints = new ArrayList<Integer>();
+    }
+}
+
 public class Map {
     float thickness; /* in meters */
-    ArrayList<MapPoint> mp;    
+    ArrayList<MapPoint> mp;
+    treeNode[][] tree;
+
+    public static final int TreeDiv = 16;
+    public static final float TreeBounds = 3.0f;
 
     Map(float linewidth){
         thickness = linewidth;
         mp = new ArrayList<MapPoint>();
+        tree = new treeNode[TreeDiv][TreeDiv];
     }
 
     Map(MapPoint[] points, float linewidth){
         thickness = linewidth;
         mp = new ArrayList<MapPoint>(Arrays.asList(points));
+        tree = new treeNode[TreeDiv][TreeDiv];
     }
 
     public boolean sampleMap(float x, float y){
-        for (int i = 0; i < mp.size() - 1; i++){
+        ArrayList<Integer> points = sampleAt(x, y);
+
+        for (int i : points){
+            if(i == mp.size() - 1) continue;
             if(mp.get(i).distTo(x, y) > 5.0f * thickness) continue;
             
             float p1x = mp.get(i).x - x;
@@ -70,7 +87,9 @@ public class Map {
         int mpi = -1;
         float dist1 = Float.POSITIVE_INFINITY;
 
-        for (int i = 0; i < mp.size(); i++){
+        ArrayList<Integer> points = sampleAt(x, y);
+       
+        for (int i : points){
             float dist = mp.get(i).distTo(x, y);
 
             if(dist < dist1){
@@ -108,6 +127,47 @@ public class Map {
         return new Pos2d(x, y, angle);
     }
 
+    public ArrayList<Integer> sampleAt(float x, float y){
+        int i_x = (int)(((x + (TreeBounds/2)) / TreeBounds) * TreeDiv);
+        int i_y = (int)(((y + (TreeBounds/2)) / TreeBounds) * TreeDiv);
+
+        ArrayList<Integer> nodes = new ArrayList<Integer>();
+
+        nodes.addAll(tree[i_y][i_x].mappoints);
+
+        if(i_x != TreeDiv && i_y < TreeDiv - 1) nodes.addAll(tree[i_y + 1][i_x + 1].mappoints);
+        if(                  i_y < TreeDiv - 1) nodes.addAll(tree[i_y + 1][i_x    ].mappoints);
+        if(i_x  >       0 && i_y < TreeDiv - 1) nodes.addAll(tree[i_y + 1][i_x - 1].mappoints);
+        if(i_x != TreeDiv                     ) nodes.addAll(tree[i_y    ][i_x + 1].mappoints);
+        if(i_x  >       0                     ) nodes.addAll(tree[i_y    ][i_x - 1].mappoints);
+        if(i_x != TreeDiv && i_y >           0) nodes.addAll(tree[i_y - 1][i_x + 1].mappoints);
+        if(                  i_y >           0) nodes.addAll(tree[i_y - 1][i_x    ].mappoints);
+        if(i_x  >       0 && i_y >           0) nodes.addAll(tree[i_y - 1][i_x - 1].mappoints);
+
+        return nodes;
+    }
+
+    public void initTree(){
+        for(int i = 0; i < TreeDiv; i++){
+            for(int j = 0; j < TreeDiv; j++){
+                tree[i][j] = new treeNode();
+            }
+        }
+
+        for(int i = 0; i < mp.size(); i++){
+            int x = (int)(((mp.get(i).x + (TreeBounds/2)) / TreeBounds) * TreeDiv);
+            int y = (int)(((mp.get(i).y + (TreeBounds/2)) / TreeBounds) * TreeDiv);
+
+            tree[y][x].mappoints.add(i);
+        }
+
+        for(int i = 0; i < TreeDiv; i++){
+            for(int j = 0; j < TreeDiv; j++){
+                System.out.println(tree[j][i].mappoints);
+            }
+        }
+    }
+
     public static Map fromOBJ(String fp, float thickness){
         Map m = new Map(thickness);
 
@@ -126,6 +186,7 @@ public class Map {
         } catch (Exception e) {
         }
 
+        m.initTree();
         return m;
     }
 
