@@ -115,7 +115,7 @@ public class BatchTrainer {
 
     public static simulationReturn runSimulation(Map map, MotorInstruction[][][][][][] mi){
         RobotSim rb = new RobotSim(map, mi);
-        float dist = 0, offset = 0, time = 0;
+        float dist = 0, offset = 0, time = 0, maxdist = 0;
 
         while(true){
             rb.Update();
@@ -125,8 +125,9 @@ public class BatchTrainer {
             float[] d = map.getDistAlongAndFrom(rb.pos.x, rb.pos.y);
             dist = d[0];
             offset = d[1];
+            maxdist = Math.max(dist, maxdist);
 
-            if(offset > MAX_OFFSET || dist > 0.99f) break;
+            if(offset > MAX_OFFSET || dist > 0.99f || dist < maxdist - 0.05f) break;
         }
 
         return new simulationReturn(time, dist);
@@ -134,7 +135,7 @@ public class BatchTrainer {
     
     public static void runSimulationRendered(Map map, MotorInstruction[][][][][][] mi){
         RobotSim rb = new RobotSim(map, MotorInstruction.RandomFrom(mi, 1000000,0));
-        float dist = 0, offset = 0;
+        float dist = 0, offset = 0, maxdist = 0;
 
         while(true){
             rb.Update();
@@ -143,8 +144,9 @@ public class BatchTrainer {
             //if (dist > d[0]) return;
             dist = d[0];
             offset = d[1];
+            maxdist = Math.max(dist, maxdist);
 
-            if(offset > MAX_OFFSET || dist > 0.99f) break;
+            if(offset > MAX_OFFSET || dist > 0.99f || dist < maxdist - 0.05f) break;
 
             rb.Render();
             map.Render();

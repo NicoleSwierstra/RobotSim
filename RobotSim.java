@@ -115,7 +115,7 @@ public class RobotSim{
     final static float trackWidth       = 0.107f;
     final static float sensoroffset     = 0.036f;
     final static float sensorWidth      = 0.046f;
-    final static int BUFFER_LEN         = 64;
+    final static int BUFFER_LEN         = 32;
 
     SensorReturn[] buffer = new SensorReturn[BUFFER_LEN * 2];
     int bufferptr;
@@ -205,7 +205,8 @@ public class RobotSim{
 
     public void Update(){
         MotorInstruction instruction = milookup();
-        for(int i = 0; i < 20; i++){
+        for(int i = 0; i < 10; i++){
+            Move(instruction);
             Move(instruction);
             sensorWrite(getSensor());
         }
