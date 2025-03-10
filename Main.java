@@ -1,6 +1,5 @@
-import Graphics.Renderer;
-import Graphics.Window;
 import Graphics.GUI.*;
+import Graphics.Window;
 
 public class Main {
     public static void main(String[] args){
@@ -8,7 +7,7 @@ public class Main {
         
         new Thread(() -> w.start()).start();
 
-        Map m = Map.fromOBJ("map.obj", 0.025f);
+        Map m = Map.fromOBJ("map.obj", 0.018f);
 
         try{Thread.sleep(1000);} catch(Exception e) {};
 
@@ -17,14 +16,14 @@ public class Main {
         w.gui.queueButton("save", 0.05f, 0.05f, 0.1f, 0.04f, new ButtonInterface() {
             @Override
             public void onClick() {
-                BatchTrainer.save("h.txt");
+                BatchTrainer.save("lookup.c");
             }
         });
 
         w.gui.queueButton("load", 0.05f, 0.11f, 0.1f, 0.04f, new ButtonInterface() {
             @Override
             public void onClick() {
-                BatchTrainer.load("h.txt");
+                BatchTrainer.load("lookup.c");
             }
         });
 

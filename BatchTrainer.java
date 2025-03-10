@@ -1,11 +1,9 @@
-import java.awt.List;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -25,7 +23,7 @@ public class BatchTrainer {
     public static final int ADJ_AMOUNT         = 30; /* amount of adjustment happening */
     public static final int STOCHASTIC_CHANCE  = 5; /* one in whatever */ 
     
-    public static final float MAX_OFFSET       = 0.025f; /* can only be 5cm away from line before it fails */
+    public static final float MAX_OFFSET       = 0.03f; /* can only be 5cm away from line before it fails */
 
     private static int trainings = 0;
 
@@ -35,19 +33,32 @@ public class BatchTrainer {
         try{
             BufferedWriter writer = new BufferedWriter(new FileWriter(fp));
 
+            writer.append("uint8_t lookuptable[4][4][4][4][4][8] = {");
             for(int i = 0; i < current.length; i++){
+                writer.append("{");
                 for(int j = 0; j < current[i].length; j++){
+                    writer.append("{");
                     for(int k = 0; k < current[i][j].length; k++){
+                        writer.append("{");
                         for(int l = 0; l < current[i][j][k].length; l++){
+                            writer.append("{");
                             for(int n = 0; n < current[i][j][k][l].length; n++){
+                                writer.append("{");
                                 for(int o = 0; o < current[i][j][k][l][n].length; o++){
-                                    writer.append(current[i][j][k][l][n][o].l + " " + current[i][j][k][l][n][o].r + " ");
+                                    writer.append((int)current[i][j][k][l][n][o].l + ", " + current[i][j][k][l][n][o].r + ", ");
                                 }
+                                writer.append("},");
                             }
+                            writer.append("},");
                         }
+                        writer.append("},");
                     }
+                    writer.append("},");
                 }
+                writer.append("},");
             }
+            writer.append("};");
+
             writer.close();
         } 
         catch(Exception e) {
@@ -57,7 +68,7 @@ public class BatchTrainer {
 
     public static void load(String fp){
         try{
-            MotorInstruction[][][][][][] mi = new MotorInstruction[5][5][5][5][5][5];
+            MotorInstruction[][][][][][] mi = new MotorInstruction[4][4][4][4][4][4];
             Scanner sc = new Scanner(new File(fp));
 
             for(int i = 0; i < current.length; i++){
@@ -82,7 +93,7 @@ public class BatchTrainer {
     }
 
     static MotorInstruction[][][][][][] getDefault(){
-        MotorInstruction[][][][][][] mi = new MotorInstruction[5][5][5][5][5][5];
+        MotorInstruction[][][][][][] mi = new MotorInstruction[4][4][4][4][4][4];
 
         new MotorInstruction((byte)0, (byte)0);
 
@@ -127,8 +138,9 @@ public class BatchTrainer {
 
         while(true){
             rb.Update();
-            
+           
             float[] d = map.getDistAlongAndFrom(rb.pos.x, rb.pos.y);
+            //if (dist > d[0]) return;
             dist = d[0];
             offset = d[1];
 
@@ -174,8 +186,6 @@ public class BatchTrainer {
        
         Thread RendThread = new Thread(() -> runSimulationRendered(map, current));
 
-        int successes = 0;
-
         while(true){
             float currentDist;
             currentDist = runBatchTest(map, current, 40).dist;
@@ -217,7 +227,7 @@ public class BatchTrainer {
             System.out.println("iterations: " + trainings + ", time: " + currentRun.time + ", dist: " + currentRun.dist);
             
             MotorInstruction[][][][][][] old = current;
-            for(int i = 0; i < BATCH_SIZE * 5; i++){
+            for(int i = 0; i < BATCH_SIZE * 2; i++){
                 MotorInstruction[][][][][][] mi = MotorInstruction.RandomFrom(old, STOCHASTIC_CHANCE * 5, ADJ_AMOUNT);
                 simulationReturn sr = runBatchTest(map, mi, 25);
             
