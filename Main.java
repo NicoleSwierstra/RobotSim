@@ -28,7 +28,9 @@ public class Main {
         });
 
         w.gui.applyQueue();
+       
         
+        BatchTrainer.load("lookup.c");
         RobotSim rb = new RobotSim(m, BatchTrainer.getInstructionArray(m));
         
         while(true){
@@ -37,8 +39,6 @@ public class Main {
             rb.Update();
 
             float[] d = m.getDistAlongAndFrom(rb.pos.x, rb.pos.y);
-
-            System.out.println(d[0] + ", " + d[1]);
 
             try{Thread.sleep(100);} catch(Exception e) {};
         }

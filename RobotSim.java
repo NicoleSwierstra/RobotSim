@@ -117,6 +117,8 @@ public class RobotSim{
     final static float sensorWidth      = 0.046f;
     final static int BUFFER_LEN         = 32;
 
+    float inertia_l = 0, inertia_r = 0;
+
     SensorReturn[] buffer = new SensorReturn[BUFFER_LEN * 2];
     int bufferptr;
     Pos2d[] lastPos = new Pos2d[BUFFER_LEN * 2];
@@ -173,18 +175,22 @@ public class RobotSim{
 
     /* returns m/s from command */
     float commandToSpeed(byte cmd){
-        return (cmd/90.0f) * maxSpeed;
+        return Math.min((cmd/80.0f), 90.0f) * maxSpeed;
     }
 
     /* move by 1 ms */
     public void Move(MotorInstruction m){
-        float speed_l = commandToSpeed(m.l),
+        float speed_l = commandToSpeed(m.l) * 0.75f,
               speed_r = commandToSpeed(m.r);
-        
-        float speed_w = (speed_l - speed_r) / trackWidth;
-        float speed_v = (speed_r + speed_l) / 2.0f;
+
+        inertia_l = inertia_l * 0.95f + speed_l * 0.05f;
+        inertia_r = inertia_r * 0.95f + speed_r * 0.05f;
+
+        float speed_w = (inertia_l - inertia_r) / trackWidth;
+        float speed_v = (inertia_r + inertia_l) / 2.0f;
 
         pos.angle += speed_w * 0.0005f;
+
         pos.x += speed_v * (float)Math.cos(pos.angle) * 0.001f;
         pos.y += speed_v * (float)Math.sin(pos.angle) * 0.001f;
         pos.angle += speed_w * 0.0005f;
@@ -205,7 +211,7 @@ public class RobotSim{
 
     public void Update(){
         MotorInstruction instruction = milookup();
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 5; i++){
             Move(instruction);
             Move(instruction);
             sensorWrite(getSensor());
