@@ -111,7 +111,7 @@ class lookPointer {
 public class RobotSim{
     Pos2d pos; 
     Map map;
-    final static float maxSpeed         = 0.600f;
+    final static float maxSpeed         = 0.500f;
     final static float trackWidth       = 0.107f;
     final static float sensoroffset     = 0.036f;
     final static float sensorWidth      = 0.046f;
