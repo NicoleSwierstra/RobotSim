@@ -9,26 +9,28 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 class simulationReturn {
-    public float time, dist, rate;
+    public float time, dist, rate, smoothness;
 
-    public simulationReturn(float time, float dist){
+    public simulationReturn(float time, float dist, float smoothness){
         this.time = time;
         this.dist = dist;
         this.rate = dist > 0.99f ? 1 : 0;
+        this.smoothness = smoothness;
     }
 
-    public simulationReturn(float time, float dist, float rate){
+    public simulationReturn(float time, float dist, float rate, float smoothness){
         this.time = time;
         this.dist = dist;
         this.rate = rate;
+        this.smoothness = smoothness;
     }
 }
 
 
 public class BatchTrainer {
     public static final int BATCH_SIZE         = 300;
-    public static final int ADJ_AMOUNT         = 20; /* amount of adjustment happening */
-    public static final int STOCHASTIC_CHANCE  = 10; /* one in whatever */ 
+    public static final int ADJ_AMOUNT         = 30; /* amount of adjustment happening */
+    public static final int STOCHASTIC_CHANCE  = 4; /* one in whatever */ 
     
     public static final float MAX_OFFSET       = 0.025f; /* can only be 5cm away from line before it fails */
 
@@ -99,7 +101,7 @@ public class BatchTrainer {
                 }
             }
             sc.close();
-            current = mi;
+            current = MotorInstruction.RandomFrom(mi, 100000, 0);
         } 
         catch(Exception e) {
             e.printStackTrace();
@@ -152,13 +154,13 @@ public class BatchTrainer {
 
             if(offset > MAX_OFFSET || dist > 0.99f || dist < maxdist - 0.05f || time > 15.0f){
                 if(halfway || dist < 0.99f) break;
-                else return new simulationReturn(15.0f, 0.001f);
+                else return new simulationReturn(15.0f, 0.001f, (float)(1.0 / (rb.getAverage() + 0.01)));
             }
 
             if (dist > 0.5f) halfway = true;
         }
 
-        return new simulationReturn(time, Math.min(dist,0.99f));
+        return new simulationReturn(time, Math.min(dist,0.99f), (float)(1.0 / (rb.getAverage() + 0.01)));
     }
     
     public static void runSimulationRendered(Map map, MotorInstruction[][][][][][] mi){
@@ -169,7 +171,7 @@ public class BatchTrainer {
             rb.Update();
            
             float[] d = map.getDistAlongAndFrom(rb.pos.x, rb.pos.y);
-            //if (dist > d[0]) return;
+            
             dist = d[0];
             offset = d[1];
             maxdist = Math.max(dist, maxdist);
@@ -187,11 +189,11 @@ public class BatchTrainer {
         if(sr.rate < 0.5f)
             return sr.dist * 12.5f + sr.rate * 5.0f;
         else
-            return sr.dist * 12.5f + (sr.dist/sr.time) * 10.0f + sr.rate * 5.0f;   
+            return sr.dist * 12.5f + (sr.dist/sr.time) * 25.0f + sr.rate + (1.5f * sr.smoothness);   
     }
 
     public static simulationReturn runBatchTest(Map map, MotorInstruction[][][][][][] mi, int trials){
-        float total_dist = 0, total_time = 0;
+        float total_dist = 0, total_time = 0, total_smoothness = 0;
         int total_finished = 0;
 
         ExecutorService EXEC = Executors.newCachedThreadPool();
@@ -212,12 +214,15 @@ public class BatchTrainer {
                 sr = fr.get();
                 total_dist += sr.dist;
                 total_time += sr.time;
+                total_smoothness += sr.smoothness;
                 total_finished += sr.dist >= 0.98f ? 1 : 0;
             } 
         } catch (Exception ex) {
     
         }
-        return new simulationReturn(total_time / (float)trials, total_dist / (float)trials, (float)total_finished / (float)trials);   
+
+        //System.out.println(total_dist + ", " + total_time +  ", " + total_smoothness);
+        return new simulationReturn(total_time / (float)trials, total_dist / (float)trials, (float)total_finished / (float)trials, total_smoothness / (float)trials);   
     }
 
     public static MotorInstruction[][][][][][] getInstructionArray(Map map){
@@ -227,7 +232,8 @@ public class BatchTrainer {
         Thread RendThread = new Thread(() -> runSimulationRendered(map, current));
 
         while(true){
-            float currentDist = 0, currentTime = 0, currentRate = 0, currentScore = getScore(runBatchTest(map, current, 40));
+            float currentDist = 0, currentTime = 0, currentRate = 0, currentSmooth = 0, currentScore = getScore(runBatchTest(map, current, 40));
+           
             if(!RendThread.isAlive()){
                 try{RendThread.join();} catch(Exception e){}
                 RendThread = new Thread(() -> runSimulationRendered(map, current));
@@ -245,13 +251,16 @@ public class BatchTrainer {
                     currentDist = test.dist;
                     currentTime = test.time;
                     currentRate = test.rate;
+                    currentSmooth = test.smoothness;
                     currentScore = score;
                 }
             }
 
+
+            if(trainings % 10 == 0) save("lookup.c");
             trainings++;
 
-            System.out.println("iterations: " + trainings + ", dist: " + currentDist + ", time: " + currentTime + ", rate: " + currentRate + ", score: " + currentScore);
+            System.out.println("iterations: " + trainings + ", dist: " + currentDist + ", time: " + currentTime + ", rate: " + currentRate + ", smooth: " + currentSmooth + " score: " + currentScore);
            
             if(currentDist > 0.99f)
                 if (currentRate > 0.95f && currentTime < 8.0f) break;

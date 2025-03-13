@@ -42,7 +42,7 @@ class MotorInstruction{
                                 int adjx = (rand.nextInt(chance) == 0) ? (rand.nextBoolean() ? 1 : -1) * rand.nextInt(adjamount) : 0;
                                 int adjy = (rand.nextInt(chance) == 0) ? (rand.nextBoolean() ? 1 : -1) * rand.nextInt(adjamount) : 0;
 
-                                nmi[i][j][k][l][n][o] = new MotorInstruction((byte)Math.min(Math.max(mi[i][j][k][l][n][o].l + adjx, -90), 90), (byte)Math.min(Math.max(mi[i][j][k][l][n][o].r + adjy, -90), 90));
+                                nmi[i][j][k][l][n][o] = new MotorInstruction((byte)Math.min(Math.max(mi[i][j][k][l][n][o].l + adjx, -60), 60), (byte)Math.min(Math.max(mi[i][j][k][l][n][o].r + adjy, -90), 90));
                             }
                         }
                     }
@@ -116,6 +116,9 @@ public class RobotSim{
     final static float sensoroffset     = 0.036f;
     final static float sensorWidth      = 0.046f;
     final static int BUFFER_LEN         = 32;
+    
+    double average_dx;
+    long sample_points;
 
     float inertia_l = 0, inertia_r = 0;
 
@@ -124,14 +127,17 @@ public class RobotSim{
     Pos2d[] lastPos = new Pos2d[BUFFER_LEN * 2];
 
     MotorInstruction[][][][][][] mi;
-
+    MotorInstruction lastinstruction;
+    
     public RobotSim(Map m, MotorInstruction[][][][][][] mi){
         this.map = m;
 
+        lastinstruction = new MotorInstruction((byte)0, (byte)0);
+        
         if (mi != null) this.mi = mi;
 
         Pos2d startpos = m.getHead();
-        startpos.angle += (new Random(System.currentTimeMillis()).nextFloat() - 0.5f) * 0.05f; /* add a minor angle offset */
+        startpos.angle += (new Random(System.nanoTime()).nextFloat() - 0.5f) * 0.05f; /* add a minor angle offset */
 
         pos = startpos;
     }
@@ -216,6 +222,13 @@ public class RobotSim{
             Move(instruction);
             sensorWrite(getSensor());
         }
+
+        double new_dx = (Math.abs(instruction.l - lastinstruction.l) + Math.abs(instruction.r - lastinstruction.r)) * 0.5f;
+
+        sample_points++;
+        average_dx = (new_dx / (float)sample_points) + average_dx * ((float)Math.max(sample_points - 1, 1) / sample_points);
+
+        lastinstruction = instruction;
     }
 
     public void Render(){
@@ -229,5 +242,17 @@ public class RobotSim{
             Renderer.instance.AddPoint(ps[1].x, ps[1].y, 0.002f, (buffer[i].center > 0) ? new Color(0xFF00FFFF) : new Color(0xAAAAAAAA));
             Renderer.instance.AddPoint(ps[2].x, ps[2].y, 0.002f, (buffer[i].right > 0) ? new Color(0xFF00FFFF) : new Color(0xAAAAAAAA));
         } 
+
+        Pos2d offset = new Pos2d((float)Math.cos(pos.angle + (Math.PI/2.0f)) * (trackWidth / 2.0f), (float)Math.sin(pos.angle + (Math.PI/2.0f)) * (trackWidth / 2.0f), 0.0f);
+
+        Pos2d left = new Pos2d(pos.x + offset.x, pos.y + offset.y, 0);
+        Pos2d right = new Pos2d(pos.x - offset.x, pos.y - offset.y, 0);
+
+        Renderer.instance.AddPoint(left.x, left.y, 0.01f, new Color(0xFFFFFFFF));
+        Renderer.instance.AddPoint(right.x, right.y, 0.01f, new Color(0xFFFFFFFF));
+    }
+
+    public double getAverage(){
+        return average_dx;
     }
 }
