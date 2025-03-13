@@ -29,8 +29,7 @@ public class Main {
 
         w.gui.applyQueue();
        
-        
-        BatchTrainer.load("lookup.c");
+        BatchTrainer.load("lookup.c"); 
         RobotSim rb = new RobotSim(m, BatchTrainer.getInstructionArray(m));
         
         while(true){
