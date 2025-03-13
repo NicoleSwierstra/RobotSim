@@ -180,7 +180,7 @@ public class RobotSim{
 
     /* move by 1 ms */
     public void Move(MotorInstruction m){
-        float speed_l = commandToSpeed(m.l) * 0.75f,
+        float speed_l = commandToSpeed(m.l),
               speed_r = commandToSpeed(m.r);
 
         inertia_l = inertia_l * 0.95f + speed_l * 0.05f;
