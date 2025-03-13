@@ -257,7 +257,7 @@ public class BatchTrainer {
             }
 
 
-            if(trainings % 10 == 0) save("lookup.c");
+            if(trainings % 10 == 0 && trainings > 20) save("lookup.c");
             trainings++;
 
             System.out.println("iterations: " + trainings + ", dist: " + currentDist + ", time: " + currentTime + ", rate: " + currentRate + ", smooth: " + currentSmooth + " score: " + currentScore);

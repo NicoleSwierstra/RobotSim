@@ -42,7 +42,7 @@ class MotorInstruction{
                                 int adjx = (rand.nextInt(chance) == 0) ? (rand.nextBoolean() ? 1 : -1) * rand.nextInt(adjamount) : 0;
                                 int adjy = (rand.nextInt(chance) == 0) ? (rand.nextBoolean() ? 1 : -1) * rand.nextInt(adjamount) : 0;
 
-                                nmi[i][j][k][l][n][o] = new MotorInstruction((byte)Math.min(Math.max(mi[i][j][k][l][n][o].l + adjx, -60), 60), (byte)Math.min(Math.max(mi[i][j][k][l][n][o].r + adjy, -90), 90));
+                                nmi[i][j][k][l][n][o] = new MotorInstruction((byte)Math.min(Math.max(mi[i][j][k][l][n][o].l + adjx, -90), 90), (byte)Math.min(Math.max(mi[i][j][k][l][n][o].r + adjy, -90), 90));
                             }
                         }
                     }
